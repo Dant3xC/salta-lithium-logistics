@@ -1,6 +1,6 @@
 # Análisis Logístico del Litio en Salta 🇦🇷 (Lithium Logistics Analysis)
 
-## 📖 Resumen / Abstract
+## Resumen / Abstract
 
 ### 🇪🇸 Español
 Este proyecto implementa una herramienta de **Inteligencia Geoespacial (Geo-Intelligence)** para optimizar la logística de extracción de litio en la Puna Argentina. Utiliza Python para calcular distancias reales de transporte desde los principales proyectos mineros (como Mariana y Centenario Ratones) hacia el Nodo Logístico de Güemes, un punto estratégico para la exportación. El sistema identifica ineficiencias logísticas y propone clústeres de colaboración basándose en la proximidad geográfica.
@@ -10,7 +10,7 @@ This project implements a **Geo-Intelligence** tool designed to optimize lithium
 
 ---
 
-## 🚀 Capacidades y Funcionalidades / Key Capabilities
+## Capacidades y Funcionalidades / Key Capabilities
 
 *   **Cálculo de Rutas Reales (Real-world Routing)**: Integración con la API OSRM para calcular distancias de conducción (driving distances) precisas, superando las estimaciones lineales simples.
 *   **Detección de Clústeres (Cluster Detection)**: Algoritmo espacial que identifica proyectos vecinos dentro de un radio configurable (ej. 50 km) para sugerir infraestructura compartida.

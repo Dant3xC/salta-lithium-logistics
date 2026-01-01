@@ -2,7 +2,7 @@ import streamlit as st
 import pandas as pd
 import geopandas as gpd
 import folium
-from streamlit_folium import folium_static
+from streamlit_folium import st_folium
 import matplotlib.pyplot as plt
 
 # Importar la logica de negocio del script main.py
@@ -45,8 +45,8 @@ with col2:
     st.metric("Distancia Promedio a Güemes", f"{gdf['Distancia a Guemes (km)'].mean():.1f} km")
 with col3:
     # Contar críticas
-    criticas = len(gdf[gdf['Distancia al parque industrial Güemes (km)'] > 300])
-    st.metric("Logística Crítica (>300km)", criticas, delta_color="inverse")
+    criticas = len(gdf[gdf['Distancia a Guemes (km)'] > 350])
+    st.metric("Logística Crítica (>350km)", criticas, delta_color="inverse")
 
 # Mapa Interactivo
 st.subheader("📍 Mapa Geoespacial")
@@ -63,7 +63,7 @@ folium.Marker(
 # Proyectos
 for _, row in gdf.iterrows():
     dist = row["Distancia a Guemes (km)"]
-    color = "orange" if dist > 300 else "green"
+    color = "orange" if dist > 350 else "green"
     
     # Marcador
     folium.Marker(
@@ -83,25 +83,25 @@ for _, row in gdf.iterrows():
         ).add_to(m)
 
 # Renderizar mapa en Streamlit
-folium_static(m)
+st_folium(m, width=900, returned_objects=[])
 
 # Tabla de Datos y Gráficos
 col_tabla, col_grafico = st.columns([1, 1])
 
 with col_tabla:
     st.subheader("Datos Detallados")
-    st.dataframe(gdf[["Proyecto", "Empresa", "Salar", "Distancia al parque industrial Güemes (km)"]].sort_values("Distancia al parque industrial Güemes (km)"))
+    st.dataframe(gdf[["Proyecto", "Empresa", "Salar", "Distancia a Guemes (km)"]].sort_values("Distancia a Guemes (km)"))
 
 with col_grafico:
     st.subheader("Comparativa de Distancias")
     fig, ax = plt.subplots()
-    bars = ax.barh(gdf["Proyecto"], gdf["Distancia al parque industrial Güemes (km)"])
+    bars = ax.barh(gdf["Proyecto"], gdf["Distancia a Guemes (km)"])
     ax.set_xlabel("Distancia al parque industrial Güemes (km)")
     ax.set_title("Proyectos ordenados por distancia")
     
     # Destacar barras largas
-    for bar, dist in zip(bars, gdf["Distancia al parque industrial Güemes (km)"]):
-        if dist > 300:
+    for bar, dist in zip(bars, gdf["Distancia a Guemes (km)"]):
+        if dist > 350:
             bar.set_color("#FF9800")
             
     st.pyplot(fig)

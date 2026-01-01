@@ -3,12 +3,14 @@ import geopandas as gpd
 from shapely.geometry import Point
 import folium
 import os
+import requests
+import time 
 
 # Constantes
 PROJECTION_CRS = "EPSG:32719"  # UTM Zone 19S
 GEOGRAPHIC_CRS = "EPSG:4326"   # WGS84
 GUEMES_COORDS = (-24.6932, -65.0435)  # Lat, Lon
-CRITICAL_DISTANCE_KM = 300
+CRITICAL_DISTANCE_KM = 350
 PROXIMITY_THRESHOLD_KM = 50
 DATA_PATH = os.path.join(os.path.dirname(__file__), '..', 'data', 'proyectos.csv')
 OUTPUT_MAP = "mapa_litio_final.html"
@@ -25,21 +27,46 @@ def create_geodataframe(df):
     geometry = [Point(xy) for xy in zip(df["Longitud"], df["Latitud"])]
     return gpd.GeoDataFrame(df, geometry=geometry, crs=GEOGRAPHIC_CRS)
 
+def get_real_distances(origin_coords, destination_coords):
+    #Obtiene las distancias reales de cada proyecto a Güemes.
+    url = f"http://router.project-osrm.org/route/v1/driving/{origin_coords[0]},{origin_coords[1]};{destination_coords[0]},{destination_coords[1]}?overview=false"
+
+    try: 
+        r= requests.get(url)
+        if r.status_code == 200:
+            data = r.json()
+            return data["routes"][0]["distance"] / 1000 
+        else:
+            print(f"Error al obtener la distancia real: {r.status_code}")
+            return None
+    except requests.exceptions.RequestException as e:
+        print(f"Error al obtener la distancia real: {e}")
+        return None
+
 def calculate_distances(gdf, target_point_coords):
     #Calcula la distancia de cada proyecto a un punto objetivo (Güemes).
-    # Proyectar a UTM para cálculos métricos precisos
-    gdf_metros = gdf.to_crs(PROJECTION_CRS)
-     
-    # Crear punto objetivo en el mismo sistema
-    target_point = Point(target_point_coords[1], target_point_coords[0]) # Lon, Lat
-    target_series = gpd.GeoSeries([target_point], crs=GEOGRAPHIC_CRS)
-    target_metros = target_series.to_crs(PROJECTION_CRS).iloc[0]
-    
-    # Calcular distancia
-    gdf_metros["Distancia a Guemes (km)"] = gdf_metros.geometry.distance(target_metros) / 1000
-    
-    # Devuelve la columna de distancias 
-    return gdf_metros["Distancia a Guemes (km)"], gdf_metros
+    rutas = []
+    cordG = (target_point_coords[1], target_point_coords[0])
+    for idx, row in gdf.iterrows():
+        # Coordenadas del proyecto (Lon, Lat)
+        mina_lonlat = (row.geometry.x, row.geometry.y)
+        
+        # Llamada a la API
+        dist_km = get_real_distances(mina_lonlat, cordG)
+        
+        # Si falla la API, usa la distancia lineal
+        if dist_km is None:
+            # Fallback a cálculo lineal
+            target_point = Point(target_point_coords[1], target_point_coords[0])
+            target_series = gpd.GeoSeries([target_point], crs=GEOGRAPHIC_CRS)
+            target_metros = target_series.to_crs(PROJECTION_CRS).iloc[0]
+            dist_km = row.geometry.to_crs(PROJECTION_CRS).distance(target_metros) / 1000
+            print(f"Fallback lineal usado para {row['Proyecto']}")
+            
+        rutas.append(dist_km)
+        time.sleep(0.5) 
+    gdf["Distancia a Guemes (km)"] = rutas
+    return gdf["Distancia a Guemes (km)"], gdf.to_crs(PROJECTION_CRS)
 
 def analyze_proximity(gdf_metros, threshold_km):
     #Analiza y muestra proyectos cercanos 
@@ -72,10 +99,10 @@ def generate_map(gdf, target_point_coords):
         # Determinar estilo basado en la distancia
         if distancia > CRITICAL_DISTANCE_KM:
             color_marker = "orange" 
-            estado_logistica = "Crítica (>300 km)"
+            estado_logistica = "Crítica (>350 km)"
         else:
             color_marker = "green"
-            estado_logistica = "Estándar (<=300 km)"
+            estado_logistica = "Estándar (<=350 km)"
             
         # Contenido del Popup
         popup_content = (
